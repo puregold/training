@@ -41,71 +41,69 @@ public class ParseExcelToXml {
     /**
      * Generate xml file according to excel
      *
-     * @param excelPath            excel file path
-     * @param xmlNodePathColumnIdx xml node path index, start from {@code 1}
-     * @param dataColumnIdx        data index, start from {@code 1}
-     * @param xmlFilePath          generated xml file path, this is file path not include file name, file name is decided by xml root
+     * @param excelPath            Excel file path
+     * @param xmlNodePathColumnIdx Xml node path index, start from {@code 1}
+     * @param dataColumnIdx        Data index, start from {@code 1}
+     * @param xmlFileRelativePath  Generated xml file relative path, such as '/users/xml', xml file name is decided by xml root
      * @throws IOException
      * @throws TransformerException
      */
     private static void parse(String excelPath,
                               int xmlNodePathColumnIdx,
                               int dataColumnIdx,
-                              String xmlFilePath) throws IOException, TransformerException {
-
-        Workbook workbook = WorkbookFactory.create(new File(excelPath));
-
-        // Retrieving the number of sheets in the Workbook
-        System.out.println("Workbook has " + workbook.getNumberOfSheets() + " sheets : ");
-
-        // Handle first sheet data
-        Sheet sheet = workbook.getSheetAt(0);
+                              String xmlFileRelativePath) throws IOException, TransformerException {
 
         // Collect root node name and a init root xml builder
         Map<String, XMLBuilder2> rootXmlBuilderMap = Maps.newHashMap();
 
         // Collect each row data, key is node path
-        Map<String, String> dataMap = Maps.newHashMap();
-
-        initXmlBuilderData(new File(excelPath), xmlNodePathColumnIdx, dataColumnIdx, rootXmlBuilderMap, dataMap);
+        Map<String, String> dataMap = initXmlBuilderAndCollectData(new File(excelPath), xmlNodePathColumnIdx, dataColumnIdx, rootXmlBuilderMap);
 
         if (MapUtils.isNotEmpty(dataMap)) {
 
-            String[] dataKeys;
-
-            for (Map.Entry<String, String> dataEntry : dataMap.entrySet()) {
-
-                dataKeys = StringUtils.split(dataEntry.getKey(), "/");
-
-                // Root node
-                if (dataKeys.length == 1) {
-                    continue;
-                }
-
-                // Leaf node
-                if (dataKeys.length > 1) {
-                    for (int i = 1; i < dataKeys.length; i++) {
-                        if (i != dataKeys.length - 1) {
-                            if (!checkIfExist(rootXmlBuilderMap.get(dataKeys[0]), dataKeys[i])) {
-                                rootXmlBuilderMap.get(dataKeys[0]).xpathFind("//" + dataKeys[i - 1]).e(dataKeys[i]);
-                            }
-                        } else {
-                            rootXmlBuilderMap.get(dataKeys[0]).xpathFind("//" + dataKeys[i - 1]).e(dataKeys[i]).t(dataEntry.getValue());
-                        }
-                    }
-                }
-
-                System.out.println(dataEntry.getKey() + ": " + rootXmlBuilderMap.get(dataKeys[0]).asString());
-            }
+            fillRootXmlBuilder(rootXmlBuilderMap, dataMap);
 
             for (Map.Entry<String, XMLBuilder2> xmlBuilder2Entry : rootXmlBuilderMap.entrySet()) {
-                xmlBuilderToFile(xmlBuilder2Entry.getValue(), xmlFilePath, xmlBuilder2Entry.getKey());
+                xmlBuilderToFile(xmlBuilder2Entry.getValue(), xmlFileRelativePath, xmlBuilder2Entry.getKey());
             }
 
         }
+    }
 
-        // Closing the workbook
-        workbook.close();
+    /**
+     * Fill xml builder leaf nodes and data
+     *
+     * @param rootXmlBuilderMap Initiated root xml builder which only has one root node
+     * @param dataMap           Xml node data map
+     */
+    private static void fillRootXmlBuilder(Map<String, XMLBuilder2> rootXmlBuilderMap,
+                                           Map<String, String> dataMap) {
+        String[] dataKeys;
+
+        for (Map.Entry<String, String> dataEntry : dataMap.entrySet()) {
+
+            dataKeys = StringUtils.split(dataEntry.getKey(), "/");
+
+            // Root node
+            if (dataKeys.length == 1) {
+                continue;
+            }
+
+            // Leaf node
+            if (dataKeys.length > 1) {
+                for (int i = 1; i < dataKeys.length; i++) {
+                    if (i != dataKeys.length - 1) {
+                        if (!checkIfExist(rootXmlBuilderMap.get(dataKeys[0]), dataKeys[i])) {
+                            rootXmlBuilderMap.get(dataKeys[0]).xpathFind("//" + dataKeys[i - 1]).e(dataKeys[i]);
+                        }
+                    } else {
+                        rootXmlBuilderMap.get(dataKeys[0]).xpathFind("//" + dataKeys[i - 1]).e(dataKeys[i]).t(dataEntry.getValue());
+                    }
+                }
+            }
+
+            System.out.println(dataEntry.getKey() + ": " + rootXmlBuilderMap.get(dataKeys[0]).asString());
+        }
     }
 
     /**
@@ -115,14 +113,12 @@ public class ParseExcelToXml {
      * @param xmlNodePathColumnIdx Xml path column index
      * @param dataColumnIdx        Xml node data column
      * @param rootXmlBuilderMap    Xml root node map
-     * @param dataMap              Xml data map
      * @throws IOException
      */
-    private static void initXmlBuilderData(File excelFile,
-                                           int xmlNodePathColumnIdx,
-                                           int dataColumnIdx,
-                                           Map<String, XMLBuilder2> rootXmlBuilderMap,
-                                           Map<String, String> dataMap) throws IOException {
+    private static Map<String, String> initXmlBuilderAndCollectData(File excelFile,
+                                                                    int xmlNodePathColumnIdx,
+                                                                    int dataColumnIdx,
+                                                                    Map<String, XMLBuilder2> rootXmlBuilderMap) throws IOException {
 
         Workbook workbook = WorkbookFactory.create(excelFile);
 
@@ -131,6 +127,9 @@ public class ParseExcelToXml {
 
         // Handle first sheet data
         Sheet sheet = workbook.getSheetAt(0);
+
+        // Collect each row data, key is node path
+        Map<String, String> dataMap = Maps.newHashMap();
 
         for (Row row : sheet) {
 
@@ -172,6 +171,11 @@ public class ParseExcelToXml {
                 dataMap.put(dataKey, data);
             }
         }
+
+        // Closing the workbook
+        workbook.close();
+
+        return dataMap;
     }
 
     /**
