@@ -21,7 +21,8 @@ import java.util.Map;
  * @author : jobchen
  * @version : 1.0.0 Copyright (c) 2021 jobchen, All Rights Reserved.
  * @program : Training
- * @description : Parse excel data to xml
+ * @description : <br>Parse excel data to xml</br>
+ * Use xmlbuilder as xml parser reference: https://github.com/jmurty/java-xmlbuilder
  * @create : 2021-01-12 55:29
  * @history : Who--->When--->What
  */
