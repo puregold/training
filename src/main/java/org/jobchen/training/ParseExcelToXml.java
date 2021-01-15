@@ -7,6 +7,7 @@ import com.google.common.collect.Maps;
 import com.jamesmurty.utils.XMLBuilder2;
 import edu.npu.fastexcel.ExcelException;
 import edu.npu.fastexcel.FastExcel;
+import lombok.Data;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.*;
@@ -42,7 +43,7 @@ public class ParseExcelToXml {
 
         long startTime = System.currentTimeMillis();
 
-        parse("/Users/jobchen/Desktop/sample001.xlsx", 1, 4, "/Users/jobchen/Desktop");
+        parse("/Users/jobchen/Desktop/sample001.xlsx", 1, 4, 2, 3, "/Users/jobchen/Desktop");
         System.out.println("Finish generate xml, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
 
 //        XMLBuilder2 builder = XMLBuilder2.create("Projects");
@@ -66,6 +67,8 @@ public class ParseExcelToXml {
     private static void parse(String excelPath,
                               int xmlNodePathColumnIdx,
                               int dataColumnIdx,
+                              int attributeNameColumnIdx,
+                              int attributeValueColumnIdx,
                               String xmlFileRelativePath) throws IOException, TransformerException, ExcelException {
 
         // Collect root node name and a init root xml builder
@@ -74,7 +77,8 @@ public class ParseExcelToXml {
         // Collect each row data, key is node path
 //        Map<String, String> dataMap = initXmlBuilderAndCollectData(new File(excelPath), xmlNodePathColumnIdx, dataColumnIdx, rootXmlBuilderMap);
         // This one is fast, so recommend this.
-        Map<String, String> dataMap = initXmlBuilderAndCollectDataByFastExcel(new File(excelPath), xmlNodePathColumnIdx, dataColumnIdx, rootXmlBuilderMap);
+        Map<String, XmlData> dataMap = initXmlBuilderAndCollectDataByFastExcel(
+                new File(excelPath), attributeNameColumnIdx, attributeValueColumnIdx, xmlNodePathColumnIdx, dataColumnIdx, rootXmlBuilderMap);
         // Too old to use
 //        Map<String, String> dataMap = initXmlBuilderAndCollectDataByFastExcel2(new File(excelPath), xmlNodePathColumnIdx, dataColumnIdx, rootXmlBuilderMap);
 
@@ -97,10 +101,10 @@ public class ParseExcelToXml {
      * @param dataMap           Xml node data map
      */
     private static void fillRootXmlBuilder(Map<String, XMLBuilder2> rootXmlBuilderMap,
-                                           Map<String, String> dataMap) {
+                                           Map<String, XmlData> dataMap) {
         String[] dataKeys;
 
-        for (Map.Entry<String, String> dataEntry : dataMap.entrySet()) {
+        for (Map.Entry<String, XmlData> dataEntry : dataMap.entrySet()) {
 
             dataKeys = StringUtils.split(dataEntry.getKey(), "/");
 
@@ -114,10 +118,17 @@ public class ParseExcelToXml {
                 for (int i = 1; i < dataKeys.length; i++) {
                     if (i != dataKeys.length - 1) {
                         if (!checkIfExist(rootXmlBuilderMap.get(dataKeys[0]), dataKeys[i])) {
-                            rootXmlBuilderMap.get(dataKeys[0]).xpathFind("//" + dataKeys[i - 1]).e(dataKeys[i]);
+                            rootXmlBuilderMap.get(dataKeys[0])
+                                    .xpathFind("//" + dataKeys[i - 1])
+                                    .e(dataKeys[i])
+                                    .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue());
                         }
                     } else {
-                        rootXmlBuilderMap.get(dataKeys[0]).xpathFind("//" + dataKeys[i - 1]).e(dataKeys[i]).t(dataEntry.getValue());
+                        rootXmlBuilderMap.get(dataKeys[0])
+                                .xpathFind("//" + dataKeys[i - 1])
+                                .e(dataKeys[i])
+                                .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue())
+                                .t(dataEntry.getValue().getData());
                     }
                 }
             }
@@ -219,10 +230,12 @@ public class ParseExcelToXml {
      * @param rootXmlBuilderMap    Xml root node map
      * @throws IOException
      */
-    private static Map<String, String> initXmlBuilderAndCollectDataByFastExcel(File excelFile,
-                                                                               int xmlNodePathColumnIdx,
-                                                                               int dataColumnIdx,
-                                                                               Map<String, XMLBuilder2> rootXmlBuilderMap) throws IOException {
+    private static Map<String, XmlData> initXmlBuilderAndCollectDataByFastExcel(File excelFile,
+                                                                                int attributeNameColumnIdx,
+                                                                                int attributeValueColumnIdx,
+                                                                                int xmlNodePathColumnIdx,
+                                                                                int dataColumnIdx,
+                                                                                Map<String, XMLBuilder2> rootXmlBuilderMap) throws IOException {
 
         System.out.println("Start init xml builder data by fast_excel");
 
@@ -241,6 +254,8 @@ public class ParseExcelToXml {
         // Collect each row data, key is node path
         Map<String, String> dataMap = Maps.newHashMap();
 
+        Map<String, XmlData> xmlDataMap = Maps.newHashMap();
+
         System.out.println("First sheet has " + rows.size() + " rows: ");
 
         for (org.dhatim.fastexcel.reader.Row row : rows) {
@@ -254,6 +269,8 @@ public class ParseExcelToXml {
             // Record column of a row
             int cellIndex = 0;
 
+            XmlData xmlData = new XmlData();
+
             for (org.dhatim.fastexcel.reader.Cell cell : Lists.newArrayList(row.iterator())) {
 
                 cellValue = cell.getRawValue();
@@ -261,7 +278,11 @@ public class ParseExcelToXml {
 
                 // Collect root names from first column
                 if (cellIndex == (xmlNodePathColumnIdx - 1)) {
+
                     cellValue = cellValue.replaceAll("/+", "/");
+
+                    xmlData.setPath(cellValue);
+
                     dataKey = cellValue;
                     String[] slashArrays = StringUtils.split(cellValue, "/");
                     if (slashArrays.length > 0 && !rootXmlBuilderMap.containsKey(slashArrays[0])) {
@@ -271,6 +292,15 @@ public class ParseExcelToXml {
 
                 if (cellIndex == (dataColumnIdx - 1)) {
                     data = cellValue;
+                    xmlData.setData(data);
+                }
+
+                if (cellIndex == (attributeNameColumnIdx - 1)) {
+                    xmlData.setAttributeName(cellValue);
+                }
+
+                if (cellIndex == (attributeValueColumnIdx - 1)) {
+                    xmlData.setAttributeValue(cellValue);
                 }
 
                 cellIndex += 1;
@@ -281,12 +311,13 @@ public class ParseExcelToXml {
                     System.out.println("Already exist xml path: " + dataKey + ", data: " + data + ", will replace with data: " + data);
                 }
                 dataMap.put(dataKey, data);
+                xmlDataMap.put(dataKey, xmlData);
             }
         }
 
         System.out.println("Finish init xml builder data by fast_excel, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
 
-        return dataMap;
+        return xmlDataMap;
     }
 
     /**
@@ -496,4 +527,12 @@ public class ParseExcelToXml {
             return false;
         }
     }
+}
+
+@Data
+class XmlData {
+    private String attributeName;
+    private String attributeValue;
+    private String data;
+    private String path;
 }
