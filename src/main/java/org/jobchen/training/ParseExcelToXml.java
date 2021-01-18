@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.w3c.dom.Document;
 
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -23,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -481,6 +483,14 @@ public class ParseExcelToXml {
 
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
+
+        // Format xml file
+        transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+
         transformer.transform(source, result);
 
         System.out.println("Generate xml file: [" + xmlFileDetailPath + "] finish, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
