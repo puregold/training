@@ -45,7 +45,7 @@ public class ParseExcelToXml {
 
         long startTime = System.currentTimeMillis();
 
-        parse("/Users/jobchen/Desktop/sample001.xlsx", 1, 4, 2, 3, "/Users/jobchen/Desktop");
+        parse("/Users/mac/training/src/1013.xlsx", 1, 4, 2, 3, "/Users/mac/training/src");
         System.out.println("Finish generate xml, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
 
 //        XMLBuilder2 builder = XMLBuilder2.create("Projects");
@@ -112,7 +112,10 @@ public class ParseExcelToXml {
 
             // Root node
             if (dataKeys.length == 1) {
-                continue;
+                rootXmlBuilderMap.get(dataKeys[0])
+                        .xpathFind("//" + dataKeys[0])
+                        .a(dataEntry.getValue().getAttributeName(),dataEntry.getValue().getAttributeValue());
+//                continue;
             }
 
             // Leaf node
@@ -122,8 +125,9 @@ public class ParseExcelToXml {
                         if (!checkIfExist(rootXmlBuilderMap.get(dataKeys[0]), dataKeys[i])) {
                             rootXmlBuilderMap.get(dataKeys[0])
                                     .xpathFind("//" + dataKeys[i - 1])
-                                    .e(dataKeys[i])
-                                    .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue());
+                                    .e(dataKeys[i]);
+//                                   二级节点不需要添加属性和value
+//                                  .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue());
                         }
                     } else {
                         rootXmlBuilderMap.get(dataKeys[0])
