@@ -122,8 +122,7 @@ public class ParseExcelToXml {
                         if (!checkIfExist(rootXmlBuilderMap.get(dataKeys[0]), dataKeys[i])) {
                             rootXmlBuilderMap.get(dataKeys[0])
                                     .xpathFind("//" + dataKeys[i - 1])
-                                    .e(dataKeys[i])
-                                    .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue());
+                                    .e(dataKeys[i]);
                         }
                     } else {
                         rootXmlBuilderMap.get(dataKeys[0])
@@ -474,6 +473,7 @@ public class ParseExcelToXml {
         long startTime = System.currentTimeMillis();
 
         Document xmlDocument = xmlBuilder2.getDocument();
+        xmlDocument.setXmlStandalone(true);
 
         String xmlFileDetailPath = fileRelativePath + "/" + fileName + "-" + System.currentTimeMillis() + ".xml";
 
@@ -486,9 +486,8 @@ public class ParseExcelToXml {
 
         // Format xml file
         transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
-        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+//        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
         transformer.transform(source, result);
