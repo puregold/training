@@ -20,10 +20,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +89,7 @@ public class ParseExcelToXml {
 
             for (Map.Entry<String, XMLBuilder2> xmlBuilder2Entry : rootXmlBuilderMap.entrySet()) {
                 xmlBuilderToFile(xmlBuilder2Entry.getValue(), xmlFileRelativePath, xmlBuilder2Entry.getKey());
+                xmlBuilderToString(xmlBuilder2Entry.getValue());
             }
         }
     }
@@ -491,13 +489,35 @@ public class ParseExcelToXml {
         // Format xml file
         transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        //格式化,换行
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+//        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+//        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
         transformer.transform(source, result);
 
         System.out.println("Generate xml file: [" + xmlFileDetailPath + "] finish, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
+    }
+
+    private static void xmlBuilderToString(XMLBuilder2 xmlBuilder2) throws IOException,TransformerException{
+
+        Document document = xmlBuilder2.getDocument();
+
+        DOMSource source = new DOMSource(document);
+
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        //设置编码格式
+        transformer.setOutputProperty(OutputKeys.ENCODING,StandardCharsets.UTF_8.name());
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        transformer.transform(source,new StreamResult(outputStream));
+
+        String xml = outputStream.toString();
+
+        System.out.println("xml报文:" + xml);
+
     }
 
     /**
