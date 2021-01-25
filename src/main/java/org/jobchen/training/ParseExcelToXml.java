@@ -9,7 +9,9 @@ import edu.npu.fastexcel.ExcelException;
 import edu.npu.fastexcel.FastExcel;
 import lombok.Data;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.w3c.dom.Document;
@@ -22,6 +24,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -112,7 +115,7 @@ public class ParseExcelToXml {
             if (dataKeys.length == 1) {
                 rootXmlBuilderMap.get(dataKeys[0])
                         .xpathFind("//" + dataKeys[0])
-                        .a(dataEntry.getValue().getAttributeName(),dataEntry.getValue().getAttributeValue());
+                        .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue());
 //                continue;
             }
 
@@ -499,7 +502,7 @@ public class ParseExcelToXml {
         System.out.println("Generate xml file: [" + xmlFileDetailPath + "] finish, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
     }
 
-    private static void xmlBuilderToString(XMLBuilder2 xmlBuilder2) throws IOException,TransformerException{
+    private static void xmlBuilderToString(XMLBuilder2 xmlBuilder2) throws IOException, TransformerException {
 
         Document document = xmlBuilder2.getDocument();
 
@@ -508,11 +511,11 @@ public class ParseExcelToXml {
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
         //设置编码格式
-        transformer.setOutputProperty(OutputKeys.ENCODING,StandardCharsets.UTF_8.name());
+        transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-        transformer.transform(source,new StreamResult(outputStream));
+        transformer.transform(source, new StreamResult(outputStream));
 
         String xml = outputStream.toString();
 
@@ -560,6 +563,27 @@ public class ParseExcelToXml {
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    /**
+     * Random numbers
+     *
+     * @param bitCounts Length of numbers
+     * @return
+     */
+    public static String randomNumber(int bitCounts) {
+        return RandomStringUtils.randomAlphanumeric(bitCounts);
+    }
+
+    /**
+     * Date format
+     *
+     * @param fmt  'yyyyMMddHHmmss' or 'yyyyMMdd'
+     * @param date {@link Date}
+     * @return
+     */
+    public static String generateDate(String fmt, Date date) {
+        return DateFormatUtils.format(date, fmt);
     }
 }
 
