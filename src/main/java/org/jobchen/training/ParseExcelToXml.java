@@ -20,10 +20,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +42,7 @@ public class ParseExcelToXml {
 
         long startTime = System.currentTimeMillis();
 
-        parse("/Users/jobchen/Desktop/sample001.xlsx", 1, 4, 2, 3, "/Users/jobchen/Desktop");
+        parse("/Users/mac/training/src/1013.xlsx", 1, 4, 2, 3, "/Users/mac/training/src");
         System.out.println("Finish generate xml, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
 
 //        XMLBuilder2 builder = XMLBuilder2.create("Projects");
@@ -92,6 +89,7 @@ public class ParseExcelToXml {
 
             for (Map.Entry<String, XMLBuilder2> xmlBuilder2Entry : rootXmlBuilderMap.entrySet()) {
                 xmlBuilderToFile(xmlBuilder2Entry.getValue(), xmlFileRelativePath, xmlBuilder2Entry.getKey());
+                xmlBuilderToString(xmlBuilder2Entry.getValue());
             }
         }
     }
@@ -112,7 +110,10 @@ public class ParseExcelToXml {
 
             // Root node
             if (dataKeys.length == 1) {
-                continue;
+                rootXmlBuilderMap.get(dataKeys[0])
+                        .xpathFind("//" + dataKeys[0])
+                        .a(dataEntry.getValue().getAttributeName(),dataEntry.getValue().getAttributeValue());
+//                continue;
             }
 
             // Leaf node
@@ -123,6 +124,8 @@ public class ParseExcelToXml {
                             rootXmlBuilderMap.get(dataKeys[0])
                                     .xpathFind("//" + dataKeys[i - 1])
                                     .e(dataKeys[i]);
+//                                   二级节点不需要添加属性和value
+//                                  .a(dataEntry.getValue().getAttributeName(), dataEntry.getValue().getAttributeValue());
                         }
                     } else {
                         rootXmlBuilderMap.get(dataKeys[0])
@@ -473,7 +476,6 @@ public class ParseExcelToXml {
         long startTime = System.currentTimeMillis();
 
         Document xmlDocument = xmlBuilder2.getDocument();
-        xmlDocument.setXmlStandalone(true);
 
         String xmlFileDetailPath = fileRelativePath + "/" + fileName + "-" + System.currentTimeMillis() + ".xml";
 
@@ -486,13 +488,36 @@ public class ParseExcelToXml {
 
         // Format xml file
         transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        //格式化,换行
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 //        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+//        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
         transformer.transform(source, result);
 
         System.out.println("Generate xml file: [" + xmlFileDetailPath + "] finish, cost: " + (System.currentTimeMillis() - startTime) + "(ms)");
+    }
+
+    private static void xmlBuilderToString(XMLBuilder2 xmlBuilder2) throws IOException,TransformerException{
+
+        Document document = xmlBuilder2.getDocument();
+
+        DOMSource source = new DOMSource(document);
+
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        //设置编码格式
+        transformer.setOutputProperty(OutputKeys.ENCODING,StandardCharsets.UTF_8.name());
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        transformer.transform(source,new StreamResult(outputStream));
+
+        String xml = outputStream.toString();
+
+        System.out.println("xml报文:" + xml);
+
     }
 
     /**
